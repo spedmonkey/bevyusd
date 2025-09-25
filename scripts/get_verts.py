@@ -1,11 +1,16 @@
 
 import sys
 sys.path.append("C:/development/rust/bevy_usd/.venv/Lib/site-packages")
+
 from pxr import Usd, UsdGeom
 import numpy as np
+from collections import defaultdict
+USD_FILE  = "C:/development/rust/bevy_usd/assets/mesh/box.usd"
+
+###########OLD###################
 def get_verts():
     # Open the stage
-    stage = Usd.Stage.Open("C:/development/rust/bevy_usd/src/test.usd")
+    stage = Usd.Stage.Open(USD_FILE)
 
     # Get your mesh by path (replace with your mesh path)
     mesh = UsdGeom.Mesh(stage.GetPrimAtPath("/rubbertoy/geo/shape"))
@@ -17,9 +22,6 @@ def get_verts():
     points = points_attr.Get()
 
     return (points)  # list of Gf.Vec3f objects
-
-
-
 
 def get_uvs():
     # Open the stage
@@ -46,10 +48,6 @@ def get_uvs():
     else:
         return []
 
-
-
-
-
 def get_normals():
     stage = Usd.Stage.Open("C:/development/rust/bevy_usd/src/test.usd")
         # Get your mesh by path (replace with your mesh path)
@@ -60,7 +58,6 @@ def get_normals():
         return normals
     else:
         return []
-    
 
 def get_indicies():
         # Open the stage
@@ -143,5 +140,8 @@ def get_average_uvs(faceVertexIndices,st_values):
     #unique_uvs = unique_uvs[:, ::-1]
 
     return unique_uvs
+
+
+
 
 
