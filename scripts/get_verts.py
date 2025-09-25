@@ -1,10 +1,11 @@
 
+import sys
+sys.path.append("C:/development/rust/bevy_usd/.venv/Lib/site-packages")
 from pxr import Usd, UsdGeom
 import numpy as np
-
 def get_verts():
     # Open the stage
-    stage = Usd.Stage.Open("D:/rust/meshtest/assets/models/geo.usdc")
+    stage = Usd.Stage.Open("C:/development/rust/bevy_usd/src/test.usd")
 
     # Get your mesh by path (replace with your mesh path)
     mesh = UsdGeom.Mesh(stage.GetPrimAtPath("/rubbertoy/geo/shape"))
@@ -22,7 +23,7 @@ def get_verts():
 
 def get_uvs():
     # Open the stage
-    stage = Usd.Stage.Open("D:/rust/meshtest/assets/models/geo.usdc")
+    stage = Usd.Stage.Open("C:/development/rust/bevy_usd/src/test.usd")
 
     # Get your mesh by path (replace with your mesh path)
     mesh = UsdGeom.Mesh(stage.GetPrimAtPath("/rubbertoy/geo/shape"))
@@ -50,7 +51,7 @@ def get_uvs():
 
 
 def get_normals():
-    stage = Usd.Stage.Open("D:/rust/meshtest/assets/models/geo.usdc")
+    stage = Usd.Stage.Open("C:/development/rust/bevy_usd/src/test.usd")
         # Get your mesh by path (replace with your mesh path)
     mesh = UsdGeom.Mesh(stage.GetPrimAtPath("/rubbertoy/geo/shape"))
     normals_attr = mesh.GetNormalsAttr()
@@ -63,7 +64,7 @@ def get_normals():
 
 def get_indicies():
         # Open the stage
-    stage = Usd.Stage.Open("D:/rust/meshtest/assets/models/geo.usdc")
+    stage = Usd.Stage.Open("C:/development/rust/bevy_usd/src/test.usd")
     # Get your mesh by path (replace with your mesh path)
     mesh = UsdGeom.Mesh(stage.GetPrimAtPath("/rubbertoy/geo/shape"))
     face_vertex_indices = mesh.GetFaceVertexIndicesAttr().Get()
@@ -143,4 +144,4 @@ def get_average_uvs(faceVertexIndices,st_values):
 
     return unique_uvs
 
-#print (get_uvs())
+

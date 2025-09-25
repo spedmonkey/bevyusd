@@ -107,67 +107,6 @@ fn create_cube_mesh() -> Mesh {
     // Keep the mesh data accessible in future frames to be able to mutate it in toggle_texture.
     //println!("{:?}", get_verts());
 
-    
-    let points =         vec![
-            // top (facing towards +y)
-            [-0.5, 0.5, -0.5], // vertex with index 0
-            [0.5, 0.5, -0.5], // vertex with index 1
-            [0.5, 0.5, 0.5], // etc. until 23
-            [-0.5, 0.5, 0.5],
-            // bottom   (-y)
-            [-0.5, -0.5, -0.5],
-            [0.5, -0.5, -0.5],
-            [0.5, -0.5, 0.5],
-            [-0.5, -0.5, 0.5],
-            // right    (+x)
-            [0.5, -0.5, -0.5],
-            [0.5, -0.5, 0.5],
-            [0.5, 0.5, 0.5], // This vertex is at the same position as vertex with index 2, but they'll have different UV and normal
-            [0.5, 0.5, -0.5],
-            // left     (-x)
-            [-0.5, -0.5, -0.5],
-            [-0.5, -0.5, 0.5],
-            [-0.5, 0.5, 0.5],
-            [-0.5, 0.5, -0.5],
-            // back     (+z)
-            [-0.5, -0.5, 0.5],
-            [-0.5, 0.5, 0.5],
-            [0.5, 0.5, 0.5],
-            [0.5, -0.5, 0.5],
-            // forward  (-z)
-            [-0.5, -0.5, -0.5],
-            [-0.5, 0.5, -0.5],
-            [0.5, 0.5, -0.5],
-            [0.5, -0.5, -0.5],
-        ];
-
-    let points_b =         vec![
-            // top (facing towards +y)
-            vec![-0.5, 0.5, -0.5], // vertex with index 0
-            vec![0.5, 0.5, -0.5], // vertex with index 1
-            vec![0.5, 0.5, 0.5], // etc. until 23
-            vec![-0.5, 0.5, 0.5],
-            vec![-0.5, -0.5, -0.5],
-            vec![0.5, -0.5, -0.5],
-            vec![0.5, -0.5, 0.5],
-            vec![-0.5, -0.5, 0.5],
-            vec![0.5, -0.5, -0.5],
-            vec![0.5, -0.5, 0.5],
-            vec![0.5, 0.5, 0.5], // This vertex is at the same position as vertex with index 2, but they'll have different UV and normal
-            vec![0.5, 0.5, -0.5],
-            vec![-0.5, -0.5, -0.5],
-            vec![-0.5, -0.5, 0.5],
-            vec![-0.5, 0.5, 0.5],
-            vec![-0.5, 0.5, -0.5],
-            vec![-0.5, -0.5, 0.5],
-            vec![-0.5, 0.5, 0.5],
-            vec![0.5, 0.5, 0.5],
-            vec![0.5, -0.5, 0.5],
-            vec![-0.5, -0.5, -0.5],
-            vec![-0.5, 0.5, -0.5],
-            vec![0.5, 0.5, -0.5],
-            vec![0.5, -0.5, -0.5],
-        ];
     let points = convert_to_buffer(get_verts());
     let uvs = convert_uvs_to_buffer(get_uvs());
     let normals = convert_to_buffer(get_normals());
@@ -232,7 +171,7 @@ fn get_verts() -> PyResult<Vec<[f32; 3]>> {
         let sys = py.import("sys")?;
         let path = sys.getattr("path")?;
         let new_path = path.downcast()?;
-        new_path.insert(0, "D:/rust/bevy_usd/scripts")?;
+        new_path.insert(0, "C:/development/rust/bevy_usd/scripts")?;
 
         // Import the Python module (filename without .py)
         let module = PyModule::import(py, "get_verts")?;
@@ -253,7 +192,7 @@ fn get_uvs() -> PyResult<Vec<[f32; 2]>> {
         let sys = py.import("sys")?;
         let path = sys.getattr("path")?;
         let new_path = path.downcast()?;
-        new_path.insert(0, "D:/rust/bevy_usd/scripts")?;
+        new_path.insert(0, "C:/development/rust/bevy_usd/scripts")?;
 
         // Import the Python module (filename without .py)
         let module = PyModule::import(py, "get_verts")?;
@@ -274,7 +213,7 @@ fn get_indicies() -> PyResult<Vec<u32>> {
         let sys = py.import("sys")?;
         let path = sys.getattr("path")?;
         let new_path = path.downcast()?;
-        new_path.insert(0, "D:/rust/bevy_usd/scripts")?;
+        new_path.insert(0, "C:/development/rust/bevy_usd/scripts")?;
 
         // Import the Python module (filename without .py)
         let module = PyModule::import(py, "get_verts")?;
@@ -291,7 +230,7 @@ fn get_normals() -> PyResult<Vec<[f32; 3]>> {
         let sys = py.import("sys")?;
         let path = sys.getattr("path")?;
         let new_path = path.downcast()?;
-        new_path.insert(0, "D:/rust/bevy_usd/scripts")?;
+        new_path.insert(0, "C:/development/rust/bevy_usd/scripts")?;
 
         // Import the Python module (filename without .py)
         let module = PyModule::import(py, "get_verts")?;
@@ -316,13 +255,13 @@ fn convert_to_buffer(verts: PyResult<Vec<[f32; 3]>>) -> Vec<[f32; 3]> {
 fn convert_uvs_to_buffer(verts: PyResult<Vec<[f32; 2]>>) -> Vec<[f32; 2]> {
     match verts {
         Ok(points) => return points,
-        Err(_) => return vec![[0.0, 0.0]],
+        Err(e) => {println!("Error converting to buffer: {:?}", e);return vec![[0.0, 0.0]]},
     };
 }
 
 fn convert_indicies_to_buffer(verts: PyResult<Vec<u32>>) -> Vec<u32> {
     match verts {
         Ok(points) => return points,
-        Err(_) => return vec![0],
+        Err(e) => {println!("Error converting to buffer: {:?}", e);return vec![0]},
     };
 }
