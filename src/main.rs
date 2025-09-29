@@ -1,28 +1,42 @@
 use bevy::{
     prelude::*,
     input::mouse::MouseMotion,
+    pbr::wireframe::{NoWireframe, Wireframe, WireframeColor, WireframeConfig, WireframePlugin},
     render::{
         mesh::{Indices, VertexAttributeValues},
         render_asset::RenderAssetUsages,
         render_resource::PrimitiveTopology,
     },
 };
+
+
+
+
+
 use pyo3::prelude::*;
 use pyo3::types::{PyModule,PyString,PyAny};
+use smooth_bevy_cameras::{controllers::unreal::*, LookTransformPlugin};
 
+mod input_handler;
+use crate::input_handler::input_handler;
+mod lib;
+use crate::lib::CustomUV;
 // Define a "marker" component to mark the custom mesh. Marker components are often used in Bevy for
 // filtering entities in queries with `With`, they're usually not queried directly since they don't
 // contain information within them.
-#[derive(Component)]
-struct CustomUV;
+
 
 fn main() {
+ 
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(            WireframePlugin::default())
+        //.add_plugins(LookTransformPlugin)
+        //.add_plugins(UnrealCameraPlugin::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, input_handler)
-        .add_systems(Update, camera)
-        .add_systems(Update, rotate_camera_to_mouse)
+        .add_systems(Update, input_handler )
+        //.add_systems(Update, camera)
+        //.add_systems(Update, rotate_camera_to_mouse)
         .run();
 }
 
@@ -32,7 +46,13 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    let (points, normals, uvs, indicies, xform) = get_data().unwrap();
+    
+    let (points, normals, uvs, indicies, xform) = get_data().unwrap_or_default();
+    //println!("data: {:?}", get_data());
+    //println!("len points: {:?}", points.iter().next().unwrap().len());
+    //println!("len normals: {:?}", normals.iter().next().unwrap().len());
+    //println!("len uvs: {:?}", uvs.iter().next().unwrap().len());
+    //println!("len indicies: {:?}", indicies.iter().next().unwrap().len());
     let custom_texture_handle: Handle<Image> = asset_server.load("textures/test.png");
     
     
@@ -44,6 +64,8 @@ fn setup(
         let uv_attr = uvs[index].clone();
         let indicies_attr = indicies[index].clone();
         
+        
+
         let cube_mesh_handle: Handle<Mesh> = meshes.add(create_cube_mesh(point_attr, normal_attr, uv_attr, indicies_attr));
             // Render the mesh with the custom texture, and add the marker.
         
@@ -52,12 +74,18 @@ fn setup(
                 Transform::from_matrix(matrix),
                 MeshMaterial3d(materials.add(StandardMaterial {
                     base_color_texture: Some(custom_texture_handle.clone()),
+                    cull_mode: None,
+                    
                     ..default()
                 })),
                 CustomUV,
+                
+                Wireframe
+                
             ));
 
     }
+    
 
     // Import the custom texture.
 
@@ -69,10 +97,21 @@ fn setup(
     // Transform for the camera and lighting, looking at (0,0,0) (the position of the mesh).
     let camera_and_light_transform =
         Transform::from_xyz(1.8, 1.8, 1.8).looking_at(Vec3::ZERO, Vec3::Y);
+    /*
+    // Camera in 3D space.
+    commands
+        .spawn(Camera3d::default())
+        .insert(UnrealCameraBundle::new(
+            UnrealCameraController::default(),
+            Vec3::new(0.0, 1.0, 10.0),
+            Vec3::ZERO,
+            Vec3::Y,
+        ));
+    */
 
     // Camera in 3D space.
     commands.spawn((Camera3d::default(), camera_and_light_transform));
-
+    
     // Light up the scene.
     commands.spawn((PointLight::default(), camera_and_light_transform));
 
@@ -87,6 +126,7 @@ fn setup(
         },
     ));
 }
+
 
 
 fn camera(
@@ -145,100 +185,24 @@ fn rotate_camera_to_mouse(
   }
 }
 
-
-// System to receive input from the user,
-// check out examples/input/ for more examples about user input.
-fn input_handler(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
-    mesh_query: Query<&Mesh3d, With<CustomUV>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut query: Query<&mut Transform, With<CustomUV>>,
-    time: Res<Time>,
-) {
-    if keyboard_input.just_pressed(KeyCode::Space) {
-        let mesh_handle = mesh_query.single().expect("Query not successful");
-        let mesh = meshes.get_mut(mesh_handle).unwrap();
-        toggle_texture(mesh);
-    }
-    if keyboard_input.pressed(KeyCode::KeyX) {
-        for mut transform in &mut query {
-            transform.rotate_x(time.delta_secs() / 1.2);
-        }
-    }
-    if keyboard_input.pressed(KeyCode::KeyY) {
-        for mut transform in &mut query {
-            transform.rotate_y(time.delta_secs() / 1.2);
-        }
-    }
-    if keyboard_input.pressed(KeyCode::KeyZ) {
-        for mut transform in &mut query {
-            transform.rotate_z(time.delta_secs() / 1.2);
-        }
-    }
-    if keyboard_input.pressed(KeyCode::KeyR) {
-        for mut transform in &mut query {
-            transform.look_to(Vec3::NEG_Z, Vec3::Y);
-        }
-    }
-
-}
-
 #[rustfmt::skip]
 fn create_cube_mesh(points: Vec<[f32;3]>, normals: Vec<[f32;3]>, uvs: Vec<[f32;2]>, indicies:Vec<u32>) -> Mesh {
     // Keep the mesh data accessible in future frames to be able to mutate it in toggle_texture.
-    //println!("{:?}", get_verts());
-
+    //println!("{:?}", get_vert());
     Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::MAIN_WORLD | RenderAssetUsages::RENDER_WORLD)
     .with_inserted_attribute(
         Mesh::ATTRIBUTE_POSITION,
-        // Each array is an [x, y, z] coordinate in local space.
-        // The camera coordinate space is right-handed x-right, y-up, z-back. This means "forward" is -Z.
-        // Meshes always rotate around their local [0, 0, 0] when a rotation is applied to their Transform.
-        // By centering our mesh around the origin, rotating the mesh preserves its center of mass.
         points,
     )
-    // Set-up UV coordinates to point to the upper (V < 0.5), "dirt+grass" part of the texture.
-    // Take a look at the custom image (assets/textures/array_texture.png)
-    // so the UV coords will make more sense
-    // Note: (0.0, 0.0) = Top-Left in UV mapping, (1.0, 1.0) = Bottom-Right in UV mapping
-
-    // For meshes with flat shading, normals are orthogonal (pointing out) from the direction of
-    // the surface.
-    // Normals are required for correct lighting calculations.
-    // Each array represents a normalized vector, which length should be equal to 1.0.
-
-    .with_inserted_indices(Indices::U32(indicies)) 
-        .with_inserted_attribute(
+    .with_inserted_attribute(
         Mesh::ATTRIBUTE_NORMAL,
         normals, 
-    )
-     
+    )   
     .with_inserted_attribute(
         Mesh::ATTRIBUTE_UV_0,
-        uvs, 
-    ) 
-}
-
-// Function that changes the UV mapping of the mesh, to apply the other texture.
-fn toggle_texture(mesh_to_change: &mut Mesh) {
-    // Get a mutable reference to the values of the UV attribute, so we can iterate over it.
-    let uv_attribute = mesh_to_change.attribute_mut(Mesh::ATTRIBUTE_UV_0).unwrap();
-    // The format of the UV coordinates should be Float32x2.
-    let VertexAttributeValues::Float32x2(uv_attribute) = uv_attribute else {
-        panic!("Unexpected vertex format, expected Float32x2.");
-    };
-
-    // Iterate over the UV coordinates, and change them as we want.
-    for uv_coord in uv_attribute.iter_mut() {
-        // If the UV coordinate points to the upper, "dirt+grass" part of the texture...
-        if (uv_coord[1] + 0.5) < 1.0 {
-            // ... point to the equivalent lower, "sand+water" part instead,
-            uv_coord[1] += 0.5;
-        } else {
-            // else, point back to the upper, "dirt+grass" part.
-            uv_coord[1] -= 0.5;
-        }
-    }
+        uvs) 
+    .with_inserted_indices(Indices::U32(indicies)) 
+        
 }
 
 #[pyfunction]
@@ -264,7 +228,6 @@ fn get_data() ->  PyResult<(Vec<Vec<[f32;3]>>,Vec<Vec<[f32;3]>>,Vec<Vec<[f32;2]>
     })
 }
 
-
 fn vec_to_mat4(matrix: Vec<[f32; 4]>) -> Mat4 {
     Mat4 {
         x_axis: vec4(matrix[0][0], matrix[0][1], matrix[0][2], matrix[0][3]),
@@ -275,6 +238,8 @@ fn vec_to_mat4(matrix: Vec<[f32; 4]>) -> Mat4 {
 }
 
 fn extract_translation_and_scale(matrix: &Vec<[f32; 4]>) -> ([f32; 3], [f32; 3]) {
+
+    
     // Translation (slate)
     let translation = [matrix[0][3], matrix[1][3], matrix[2][3]];
 
@@ -291,4 +256,60 @@ fn extract_translation_and_scale(matrix: &Vec<[f32; 4]>) -> ([f32; 3], [f32; 3])
     let scale = [scale_x, scale_y, scale_z];
 
     (translation, scale)
+}
+
+// Function that changes the UV mapping of the mesh, to apply the other texture.
+fn toggle_texture(mesh_to_change: &mut Mesh) {
+    // Get a mutable reference to the values of the UV attribute, so we can iterate over it.
+    let uv_attribute = mesh_to_change.attribute_mut(Mesh::ATTRIBUTE_UV_0).unwrap();
+    // The format of the UV coordinates should be Float32x2.
+    let VertexAttributeValues::Float32x2(uv_attribute) = uv_attribute else {
+        panic!("Unexpected vertex format, expected Float32x2.");
+    };
+
+    // Iterate over the UV coordinates, and change them as we want.
+    for uv_coord in uv_attribute.iter_mut() {
+        // If the UV coordinate points to the upper, "dirt+grass" part of the texture...
+        if (uv_coord[1] + 0.5) < 1.0 {
+            // ... point to the equivalent lower, "sand+water" part instead,
+            uv_coord[1] += 0.5;
+        } else {
+            // else, point back to the upper, "dirt+grass" part.
+            uv_coord[1] -= 0.5;
+        }
+    }
+}
+
+
+fn triangulate(
+    counts: &[usize],
+    indices: &[u32],
+    positions_ref: &[Vec3],
+    normals_ref: &[Vec3],
+    uvs_ref: &[Vec2],
+) -> (Vec<[f32; 3]>, Vec<[f32; 3]>, Vec<[f32; 2]>, Vec<u32>) {
+    let mut new_positions = Vec::new();
+    let mut new_normals = Vec::new();
+    let mut new_uvs = Vec::new();
+    let mut tri_indices = Vec::new();
+
+    let mut wedge_idx = 0;
+    for &n in counts {
+        for i in 0..(n.saturating_sub(2)) {
+            let idxs = [
+                indices[wedge_idx] as usize,
+                indices[wedge_idx + i + 2] as usize,
+                indices[wedge_idx + i + 1] as usize,
+            ];
+            for &idx in &idxs {
+                tri_indices.push(new_positions.len() as u32);
+                new_positions.push(positions_ref[idx].to_array());
+                new_normals.push(normals_ref[idx].to_array());
+                new_uvs.push(uvs_ref[idx].to_array());
+            }
+        }
+        wedge_idx += n;
+    }
+
+    (new_positions, new_normals, new_uvs, tri_indices)
 }
